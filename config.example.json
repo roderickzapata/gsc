@@ -1,0 +1,17 @@
+{
+  "auth": {
+    "client_secrets_path": "client_secret.json",
+    "token_store_path": ".token_cache.json"
+  },
+  "gsc": {
+    "site_url": "sc-domain:example.com"
+  },
+  "query": {
+    "dimensions": ["query", "page"],
+    "type": "web",
+    "row_limit": 25000
+  },
+  "output": {
+    "csv_path": "export.csv"
+  }
+}
