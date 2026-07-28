@@ -1,5 +1,6 @@
 # GSC Export
 
+A lightweight Python CLI to export Google Search Console Search Analytics data to CSV using the official Google Search Console API.
 Herramienta de linea de comandos para exportar datos de Google Search Console Search Analytics a CSV.
 
 ---
