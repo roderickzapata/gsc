@@ -1,0 +1,34 @@
+# Configuración local
+config.json
+
+# Credenciales OAuth
+.token_cache.json
+client_secret*.json
+
+# Archivos generados
+*.csv
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Cachés de herramientas
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+*.swp
