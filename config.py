@@ -46,6 +46,15 @@ def load_config(config_path: str = "config.json") -> Config:
     else:
         page_filter = query.get("page_filter")
 
+    env_query_filter = os.getenv("GSC_QUERY_FILTER")
+    if env_query_filter is not None:
+        if env_query_filter == "":
+            query_filter = None
+        else:
+            query_filter = env_query_filter
+    else:
+        query_filter = query.get("query_filter")
+
     _validate_required_fields(auth, output, site_url)
 
     return Config(
@@ -57,6 +66,7 @@ def load_config(config_path: str = "config.json") -> Config:
         row_limit=query.get("row_limit", 1000),
         csv_path=output.get("csv_path", "export.csv"),
         page_filter=page_filter,
+        query_filter=query_filter,
     )
 
 

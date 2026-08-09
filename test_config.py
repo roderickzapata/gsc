@@ -21,6 +21,7 @@ def minimal_config_file(tmp_path):
             "type": "web",
             "row_limit": 1000,
             "page_filter": "https://config.example.com/initial-filter/",
+            "query_filter": "bloques de concreto",
         },
         "output": {
             "csv_path": "export.csv",
@@ -95,3 +96,20 @@ class TestPageFilterEnvironmentOverride:
         monkeypatch.setenv("GSC_PAGE_FILTER", "")
         config = load_config(minimal_config_file)
         assert config.page_filter is None
+
+
+class TestQueryFilterEnvironmentOverride:
+    def test_env_overrides_query_filter(self, minimal_config_file, monkeypatch):
+        monkeypatch.setenv("GSC_QUERY_FILTER", "ladrillos rojos")
+        config = load_config(minimal_config_file)
+        assert config.query_filter == "ladrillos rojos"
+
+    def test_absence_of_gsc_query_filter_uses_config_json(self, minimal_config_file, monkeypatch):
+        monkeypatch.delenv("GSC_QUERY_FILTER", raising=False)
+        config = load_config(minimal_config_file)
+        assert config.query_filter == "bloques de concreto"
+
+    def test_empty_gsc_query_filter_produces_none(self, minimal_config_file, monkeypatch):
+        monkeypatch.setenv("GSC_QUERY_FILTER", "")
+        config = load_config(minimal_config_file)
+        assert config.query_filter is None

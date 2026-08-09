@@ -23,6 +23,7 @@ def base_config():
         row_limit=1000,
         csv_path="export.csv",
         page_filter=None,
+        query_filter=None,
     )
 
 
@@ -140,6 +141,144 @@ class TestDownloadSearchAnalyticsBody:
             query_type="web",
             row_limit=1000,
             page_filter="",
+        )
+
+        mock_service = MagicMock()
+        mock_response = {"rows": []}
+        mock_service.searchanalytics().query.return_value.execute.return_value = (
+            mock_response
+        )
+
+        with patch(
+            "search_console.build", return_value=mock_service
+        ):
+            download_search_analytics(mock_credentials, base_config, request)
+
+        call_kwargs = mock_service.searchanalytics().query.call_args
+        body = call_kwargs.kwargs["body"]
+
+        assert "dimensionFilterGroups" not in body
+
+    def test_body_without_query_filter(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=1000,
+            page_filter=None,
+            query_filter=None,
+        )
+
+        mock_service = MagicMock()
+        mock_response = {"rows": []}
+        mock_service.searchanalytics().query.return_value.execute.return_value = (
+            mock_response
+        )
+
+        with patch(
+            "search_console.build", return_value=mock_service
+        ):
+            download_search_analytics(mock_credentials, base_config, request)
+
+        mock_service.searchanalytics().query.assert_called_once()
+        call_kwargs = mock_service.searchanalytics().query.call_args
+        body = call_kwargs.kwargs["body"]
+
+        assert "dimensionFilterGroups" not in body
+
+    def test_body_with_query_filter(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=1000,
+            page_filter=None,
+            query_filter="teja de barro",
+        )
+
+        mock_service = MagicMock()
+        mock_response = {"rows": []}
+        mock_service.searchanalytics().query.return_value.execute.return_value = (
+            mock_response
+        )
+
+        with patch(
+            "search_console.build", return_value=mock_service
+        ):
+            download_search_analytics(mock_credentials, base_config, request)
+
+        mock_service.searchanalytics().query.assert_called_once()
+        call_kwargs = mock_service.searchanalytics().query.call_args
+        body = call_kwargs.kwargs["body"]
+
+        assert "dimensionFilterGroups" in body
+        filter_groups = body["dimensionFilterGroups"]
+        assert len(filter_groups) == 1
+
+        filters = filter_groups[0]["filters"]
+        assert len(filters) == 1
+
+        filter_obj = filters[0]
+        assert filter_obj["dimension"] == "query"
+        assert filter_obj["operator"] == "equals"
+        assert filter_obj["expression"] == "teja de barro"
+
+    def test_body_with_query_filter_and_page_filter(self, mock_credentials, base_config):
+        page_url = "https://www.nicaladrillos.com/catalogo/teja/"
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=1000,
+            page_filter=page_url,
+            query_filter="teja de barro",
+        )
+
+        mock_service = MagicMock()
+        mock_response = {"rows": []}
+        mock_service.searchanalytics().query.return_value.execute.return_value = (
+            mock_response
+        )
+
+        with patch(
+            "search_console.build", return_value=mock_service
+        ):
+            download_search_analytics(mock_credentials, base_config, request)
+
+        mock_service.searchanalytics().query.assert_called_once()
+        call_kwargs = mock_service.searchanalytics().query.call_args
+        body = call_kwargs.kwargs["body"]
+
+        assert "dimensionFilterGroups" in body
+        filter_groups = body["dimensionFilterGroups"]
+        assert len(filter_groups) == 1
+
+        filters = filter_groups[0]["filters"]
+        assert len(filters) == 2
+
+        filter_by_page = next(f for f in filters if f["dimension"] == "page")
+        filter_by_query = next(f for f in filters if f["dimension"] == "query")
+
+        assert filter_by_page["dimension"] == "page"
+        assert filter_by_page["operator"] == "equals"
+        assert filter_by_page["expression"] == page_url
+
+        assert filter_by_query["dimension"] == "query"
+        assert filter_by_query["operator"] == "equals"
+        assert filter_by_query["expression"] == "teja de barro"
+
+    def test_body_with_empty_string_query_filter(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=1000,
+            page_filter=None,
+            query_filter="",
         )
 
         mock_service = MagicMock()

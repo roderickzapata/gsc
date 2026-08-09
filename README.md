@@ -70,18 +70,22 @@ cp config.example.json config.json
 
 Reemplazar `sc-domain:example.com` con la direccion de la propiedad configurada en Google Search Console.
 
-**Filtro opcional por pagina:** Para filtrar resultados por una URL exacta, agregar `page_filter` dentro de `query`:
+**Filtros opcionales:** Para filtrar resultados de forma precisa, es posible usar uno o ambos filtros dentro de `query`:
 
 ```json
 "query": {
   "dimensions": ["query", "page"],
   "type": "web",
   "row_limit": 1000,
-  "page_filter": "https://www.example.com/pagina-especifica/"
+  "page_filter": "https://www.example.com/pagina-especifica/",
+  "query_filter": "mi producto"
 }
 ```
 
-Cuando `page_filter` no esta configurado o es `null`, la consulta devuelve todos los datos igual que antes.
+- `page_filter`: filtra por URL exacta de la pagina.
+- `query_filter`: filtra por texto exacto de la consulta de busqueda.
+
+Cuando un filtro no esta configurado o es `null`, ese filtro no se aplica y la consulta devuelve todos los datos correspondientes.
 
 ### Variables de entorno
 
@@ -91,16 +95,18 @@ Las variables de entorno sobrescriben los valores correspondientes de `config.js
 |----------|-------------|
 | `GSC_SITE_URL` | URL de la propiedad de Search Console (formato: `sc-domain:example.com`). Si esta definida y no esta vacia, sobrescribe `gsc.site_url`. Si esta vacia, la validacion fallara. |
 | `GSC_PAGE_FILTER` | URL exacta para filtrar resultados por pagina. Si esta definida y no esta vacia, sobrescribe `query.page_filter`. Si esta vacia (`""`), se interpreta como sin filtro (equivalente a `null`). Si no esta definida, se usa el valor de `config.json`. |
+| `GSC_QUERY_FILTER` | Texto exacto para filtrar resultados por consulta de busqueda. Si esta definida y no esta vacia, sobrescribe `query.query_filter`. Si esta vacia (`""`), se interpreta como sin filtro (equivalente a `null`). Si no esta definida, se usa el valor de `config.json`. |
 
 **Ejemplo:**
 
 ```bash
 export GSC_SITE_URL="sc-domain:example.com"
 export GSC_PAGE_FILTER="https://www.example.com/pagina-especifica/"
+export GSC_QUERY_FILTER="mi producto"
 python download.py --last 7
 ```
 
-**Nota:** Si `GSC_PAGE_FILTER` se define pero se deja vacia, la consulta devolvera todos los datos sin filtrar por pagina.
+**Nota:** Si una variable de entorno se define pero se deja vacia (`""`), el filtro correspondiente no se aplica. Si no esta definida, se utiliza el valor de `config.json`.
 
 ---
 

@@ -10,7 +10,8 @@
     "dimensions": ["query", "page"],
     "type": "web",
     "row_limit": 25000,
-    "page_filter": null
+    "page_filter": null,
+    "query_filter": null
   },
   "output": {
     "csv_path": "export.csv"

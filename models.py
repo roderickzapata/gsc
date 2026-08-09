@@ -11,6 +11,7 @@ class Config:
     row_limit: int
     csv_path: str
     page_filter: str | None = None
+    query_filter: str | None = None
 
 
 @dataclass
@@ -21,6 +22,7 @@ class ExecutionRequest:
     query_type: str
     row_limit: int
     page_filter: str | None = None
+    query_filter: str | None = None
 
 
 @dataclass

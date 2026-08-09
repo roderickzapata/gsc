@@ -24,6 +24,7 @@ def main() -> None:
         query_type=config.query_type,
         row_limit=config.row_limit,
         page_filter=config.page_filter,
+        query_filter=config.query_filter,
     )
 
     rows = download_search_analytics(credentials, config, request)
