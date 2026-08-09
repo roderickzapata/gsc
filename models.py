@@ -10,6 +10,7 @@ class Config:
     query_type: str
     row_limit: int
     csv_path: str
+    page_filter: str | None = None
 
 
 @dataclass
@@ -19,6 +20,7 @@ class ExecutionRequest:
     dimensions: list[str]
     query_type: str
     row_limit: int
+    page_filter: str | None = None
 
 
 @dataclass

@@ -70,6 +70,38 @@ cp config.example.json config.json
 
 Reemplazar `sc-domain:example.com` con la direccion de la propiedad configurada en Google Search Console.
 
+**Filtro opcional por pagina:** Para filtrar resultados por una URL exacta, agregar `page_filter` dentro de `query`:
+
+```json
+"query": {
+  "dimensions": ["query", "page"],
+  "type": "web",
+  "row_limit": 1000,
+  "page_filter": "https://www.example.com/pagina-especifica/"
+}
+```
+
+Cuando `page_filter` no esta configurado o es `null`, la consulta devuelve todos los datos igual que antes.
+
+### Variables de entorno
+
+Las variables de entorno sobrescriben los valores correspondientes de `config.json`. Esto permite cambiar la configuracion sin modificar el archivo.
+
+| Variable | Descripcion |
+|----------|-------------|
+| `GSC_SITE_URL` | URL de la propiedad de Search Console (formato: `sc-domain:example.com`). Si esta definida y no esta vacia, sobrescribe `gsc.site_url`. Si esta vacia, la validacion fallara. |
+| `GSC_PAGE_FILTER` | URL exacta para filtrar resultados por pagina. Si esta definida y no esta vacia, sobrescribe `query.page_filter`. Si esta vacia (`""`), se interpreta como sin filtro (equivalente a `null`). Si no esta definida, se usa el valor de `config.json`. |
+
+**Ejemplo:**
+
+```bash
+export GSC_SITE_URL="sc-domain:example.com"
+export GSC_PAGE_FILTER="https://www.example.com/pagina-especifica/"
+python download.py --last 7
+```
+
+**Nota:** Si `GSC_PAGE_FILTER` se define pero se deja vacia, la consulta devolvera todos los datos sin filtrar por pagina.
+
 ---
 
 ## Primera ejecucion
@@ -100,7 +132,7 @@ python download.py --last 7
 
 El script genera un archivo CSV cuyo nombre se determina a partir de `gsc.site_url`. El directorio de salida se toma de `output.csv_path`, pero el nombre del archivo se genera automáticamente con el dominio extraído de `site_url`.
 
-Por ejemplo, si `site_url` es `sc-domain:nicaladrillos.com`, el archivo resultante será `nicaladrillos.com.csv`. Si `csv_path` es `data/export.csv`, el resultado será `data/nicaladrillos.com.csv`.
+Por ejemplo, si `site_url` es `sc-domain:example.com`, el archivo resultante será `example.com.csv`. Si `csv_path` es `data/export.csv`, el resultado será `data/example.com.csv`.
 
 **Columnas del CSV:**
 
@@ -126,7 +158,7 @@ gsc/
 ├── test_auth.py         # Script de prueba de autenticacion
 ├── config.example.json  # Plantilla de configuracion
 ├── config.json          # Configuracion local (no versionar)
-└── nicaladrillos.com.csv # Archivo CSV generado (nombre segun dominio)
+└── example.com.csv # Archivo CSV generado (nombre segun dominio)
 ```
 
 **Responsabilidades:**

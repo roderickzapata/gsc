@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from models import Config
@@ -22,33 +23,48 @@ def load_config(config_path: str = "config.json") -> Config:
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in configuration file: {e}") from e
 
-    _validate_required_fields(data)
-
     auth = data.get("auth", {})
     gsc = data.get("gsc", {})
     query = data.get("query", {})
     output = data.get("output", {})
 
+    env_site_url = os.getenv("GSC_SITE_URL")
+    if env_site_url is not None:
+        if env_site_url == "":
+            site_url = ""
+        else:
+            site_url = env_site_url
+    else:
+        site_url = gsc.get("site_url", "")
+
+    env_page_filter = os.getenv("GSC_PAGE_FILTER")
+    if env_page_filter is not None:
+        if env_page_filter == "":
+            page_filter = None
+        else:
+            page_filter = env_page_filter
+    else:
+        page_filter = query.get("page_filter")
+
+    _validate_required_fields(auth, output, site_url)
+
     return Config(
         client_secrets_path=auth.get("client_secrets_path", ""),
         token_store_path=auth.get("token_store_path", ".token_cache.json"),
-        site_url=gsc.get("site_url", ""),
+        site_url=site_url,
         dimensions=query.get("dimensions", ["query", "page"]),
         query_type=query.get("type", "web"),
         row_limit=query.get("row_limit", 1000),
         csv_path=output.get("csv_path", "export.csv"),
+        page_filter=page_filter,
     )
 
 
-def _validate_required_fields(data: dict) -> None:
-    auth = data.get("auth", {})
-    gsc = data.get("gsc", {})
-    output = data.get("output", {})
-
+def _validate_required_fields(auth: dict, output: dict, site_url: str) -> None:
     missing = []
     if not auth.get("client_secrets_path"):
         missing.append("auth.client_secrets_path")
-    if not gsc.get("site_url"):
+    if not site_url:
         missing.append("gsc.site_url")
     if not output.get("csv_path"):
         missing.append("output.csv_path")

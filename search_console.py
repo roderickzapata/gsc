@@ -24,6 +24,19 @@ def download_search_analytics(
         "rowLimit": request.row_limit,
     }
 
+    if request.page_filter:
+        body["dimensionFilterGroups"] = [
+            {
+                "filters": [
+                    {
+                        "dimension": "page",
+                        "operator": "equals",
+                        "expression": request.page_filter,
+                    }
+                ]
+            }
+        ]
+
     response = service.searchanalytics().query(
         siteUrl=config.site_url,
         body=body,
