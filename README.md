@@ -25,7 +25,7 @@ Herramienta de linea de comandos para exportar datos de Google Search Console Se
 ## Instalacion
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/roderickzapata/gsc
 cd gsc
 python -m venv .venv
 ```
@@ -98,7 +98,9 @@ python download.py --last 7
 
 ## Salida
 
-El script genera un archivo CSV en la ruta especificada en `config.json`.
+El script genera un archivo CSV cuyo nombre se determina a partir de `gsc.site_url`. El directorio de salida se toma de `output.csv_path`, pero el nombre del archivo se genera automáticamente con el dominio extraído de `site_url`.
+
+Por ejemplo, si `site_url` es `sc-domain:nicaladrillos.com`, el archivo resultante será `nicaladrillos.com.csv`. Si `csv_path` es `data/export.csv`, el resultado será `data/nicaladrillos.com.csv`.
 
 **Columnas del CSV:**
 
@@ -124,7 +126,7 @@ gsc/
 ├── test_auth.py         # Script de prueba de autenticacion
 ├── config.example.json  # Plantilla de configuracion
 ├── config.json          # Configuracion local (no versionar)
-└── export.csv           # Archivo CSV generado
+└── nicaladrillos.com.csv # Archivo CSV generado (nombre segun dominio)
 ```
 
 **Responsabilidades:**
@@ -133,7 +135,7 @@ gsc/
 - `config.py` — Lee `config.json`, valida campos requeridos y construye el modelo `Config`.
 - `auth.py` — Implementa el flujo OAuth2, gestiona la cache de tokens en `.token_cache.json`.
 - `search_console.py` — Transforma la respuesta de Google Search Console en modelos `SearchResult`.
-- `exporter.py` — Escribe los datos en formato CSV con las columnas especificadas.
+- `exporter.py` — Escribe los datos en formato CSV y determina el nombre del archivo a partir del dominio de `site_url`.
 - `models.py` — Define los dataclasses `Config`, `ExecutionRequest` y `SearchResult`.
 
 ---
