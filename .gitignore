@@ -9,6 +9,8 @@ client_secret*.json
 # Archivos generados
 *.csv
 *.log
+# Directorio centralizado de CSVs (datos y resultados)
+csv/
 
 # Python
 __pycache__/

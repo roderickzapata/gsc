@@ -14,6 +14,6 @@
     "query_filter": null
   },
   "output": {
-    "csv_path": "export.csv"
+    "csv_path": "csv/export.csv"
   }
 }

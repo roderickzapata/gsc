@@ -8,7 +8,6 @@ from models import Config
 REQUIRED_FIELDS = [
     "auth.client_secrets_path",
     "gsc.site_url",
-    "output.csv_path",
 ]
 
 
@@ -64,7 +63,7 @@ def load_config(config_path: str = "config.json") -> Config:
         dimensions=query.get("dimensions", ["query", "page"]),
         query_type=query.get("type", "web"),
         row_limit=query.get("row_limit", 1000),
-        csv_path=output.get("csv_path", "export.csv"),
+        csv_path=output.get("csv_path", "csv/export.csv"),
         page_filter=page_filter,
         query_filter=query_filter,
     )
@@ -76,8 +75,6 @@ def _validate_required_fields(auth: dict, output: dict, site_url: str) -> None:
         missing.append("auth.client_secrets_path")
     if not site_url:
         missing.append("gsc.site_url")
-    if not output.get("csv_path"):
-        missing.append("output.csv_path")
 
     if missing:
         raise ValueError(f"Missing required configuration fields: {', '.join(missing)}")

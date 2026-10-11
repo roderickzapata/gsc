@@ -54,6 +54,28 @@ def config_without_site_url(tmp_path):
     return str(path)
 
 
+@pytest.fixture
+def config_without_csv_path(tmp_path):
+    config = {
+        "auth": {
+            "client_secrets_path": "client_secret.json",
+            "token_store_path": ".token_cache.json",
+        },
+        "gsc": {
+            "site_url": "sc-domain:config.example.com",
+        },
+        "query": {
+            "dimensions": ["query", "page"],
+            "type": "web",
+            "row_limit": 1000,
+        },
+        "output": {},
+    }
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+    return str(path)
+
+
 class TestSiteUrlEnvironmentOverride:
     def test_env_overrides_site_url(self, minimal_config_file, monkeypatch):
         monkeypatch.setenv("GSC_SITE_URL", "sc-domain:env.example.com")
@@ -113,3 +135,15 @@ class TestQueryFilterEnvironmentOverride:
         monkeypatch.setenv("GSC_QUERY_FILTER", "")
         config = load_config(minimal_config_file)
         assert config.query_filter is None
+
+
+class TestCsvPathDefault:
+    def test_default_csv_path_when_omitted(self, config_without_csv_path, monkeypatch):
+        monkeypatch.delenv("GSC_SITE_URL", raising=False)
+        config = load_config(config_without_csv_path)
+        assert config.csv_path == "csv/export.csv"
+
+    def test_explicit_csv_path_overrides_default(self, minimal_config_file, monkeypatch):
+        monkeypatch.delenv("GSC_SITE_URL", raising=False)
+        config = load_config(minimal_config_file)
+        assert config.csv_path == "export.csv"

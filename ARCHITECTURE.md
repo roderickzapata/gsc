@@ -313,14 +313,72 @@ Interfaz simple que cubre el caso de uso más común (últimos N días) con dise
   - `ctr`
   - `position`
 
-- La ruta de salida se obtiene de `output.csv_path` en `config.json`.
-- Si el directorio de salida no existe, `exporter.py` debe crearlo automáticamente.
+- La ruta de salida se obtiene de `output.csv_path` en `config.json`. Su valor por defecto es `csv/export.csv`, lo que concentra los CSV de datos en el directorio `csv/` del proyecto. Los usuarios pueden sobreescribir el directorio cambiando `output.csv_path` (por ejemplo `data/export.csv` produce `data/<domain>.csv`).
+- Si el directorio de salida no existe, `exporter.py` debe crearlo automáticamente (`Path.mkdir(parents=True, exist_ok=True)`).
 - Si el archivo ya existe, será sobrescrito.
+- El directorio `csv/` está excluido del repositorio (`.gitignore` contiene `csv/`). Los CSVs se regeneran en cada ejecución y no se versionan.
 
 **Motivación:**
-Mantener un comportamiento simple, determinista y predecible, evitando generar nombres de archivo automáticamente o introducir lógica innecesaria.
+Mantener un comportamiento simple, determinista y predecible, evitando generar nombres de archivo automáticamente o introducir lógica innecesaria. Concentrar los CSVs en un único directorio (`csv/`) reduce el riesgo de borrar accidentalmente archivos Python al manipular resultados y hace explícita la separación entre código y datos.
 
 **Consecuencias:**
 - Cada ejecución produce exactamente un archivo en la ruta configurada.
-- El usuario controla el nombre y la ubicación del archivo mediante `config.json`.
+- El usuario controla el nombre y la ubicación del archivo mediante `config.json`; por defecto los archivos quedan en `csv/`.
 - La implementación de `exporter.py` encapsula completamente la interacción con el sistema de archivos.
+- `output.csv_path` deja de ser un campo obligatorio en `config.json`: si está ausente, se usa el default `csv/export.csv`. Esto reduce friccion al adoptar el proyecto.
+
+---
+
+### ADR-13 — Módulo de comparación entre sitios
+
+**Estado:** Aprobada
+
+**Decisión:**
+- Añadir el módulo `compare.py` como **post-procesamiento independiente**.
+- Función pública única:
+
+  ```python
+  compare_csvs(
+      site_a_path: Path,
+      site_b_path: Path,
+      output_path: Path,
+      label_a: str = "nica",
+      label_b: str = "lpc",
+  ) -> Path
+  ```
+
+- CLI delgado:
+
+  ```bash
+  python compare.py --site-a A.csv --site-b B.csv [--output csv/comparison.csv]
+  ```
+
+- Por convencion, los archivos de entrada se localizan en `csv/` y la salida se guarda en `csv/comparison.csv` por defecto. `--site-a` y `--site-b` siguen siendo obligatorios (el comparador no presupone nombres de archivo concretos). El usuario puede pasar rutas absolutas o relativas a cualquier ubicacion.
+- El módulo **no** importa ningún otro módulo del proyecto ni accede a credenciales, red o la API de Google. Su entrada son dos CSVs ya producidos por `download.py`; su salida es un único CSV agregado por consulta.
+- Los modelos del dominio (`Config`, `ExecutionRequest`, `SearchResult`) no se modifican ni se extienden.
+- `compare.py` no se registra como entry point en `pyproject.toml` (ADR-05: se invoca como `python compare.py`).
+- Las columnas de salida, en este orden fijo, son:
+
+  - `query`
+  - `{label_a}_clicks`, `{label_a}_impressions`, `{label_a}_ctr`, `{label_a}_position`
+  - `{label_b}_clicks`, `{label_b}_impressions`, `{label_b}_ctr`, `{label_b}_position`
+  - `status`
+
+- Codificación UTF-8, separador `,`, encabezado en la primera fila. Si el directorio de `output_path` no existe, se crea. Si el archivo existe, se sobrescribe.
+- El orden de las filas es alfabético estable por `query`.
+- La métrica `position` se pondera por impresiones: `Σ(position × impressions) / Σ(impressions)`. El `ctr` se recalcula como `clicks_total / impressions_total` en lugar de copiarse del CSV de entrada.
+- Validaciones de entrada (fail fast):
+  - `label_a` y `label_b` deben ser no vacías y distintas entre sí.
+  - Ambos CSV de entrada deben existir y contener las columnas `query`, `page`, `clicks`, `impressions`, `ctr`, `position`.
+  - `output_path` no puede coincidir con `site_a_path` ni con `site_b_path`. La comparación se hace sobre rutas normalizadas con `Path.resolve()`, lo que cubre rutas relativas/absolutas, segmentos `..` y symlinks.
+  - `clicks`, `impressions` y `position` deben ser numéricos y finitos. `nan`, `inf` y `-inf` se rechazan con un mensaje que identifica archivo, fila, consulta y campo.
+- Valores `status` posibles: `shared`, `only_{label_a}`, `only_{label_b}`. Con los valores por defecto, los literales son `shared`, `only_nica`, `only_lpc`.
+
+**Motivación:**
+La API de Search Analytics es por propiedad; no admite consultar dos sitios en una sola llamada HTTP. `download.py` está modelado en torno a un único `Config.site_url` (ADR-08). Para responder a la pregunta "¿qué términos de búsqueda generaron más impresiones y clics en dos propiedades simultáneamente?" se requiere un paso de post-procesamiento que una los resultados ya descargados. Se elige un módulo independiente en lugar de extender `Config` o `ExecutionRequest` porque (a) la API no lo soporta, (b) mantener `Config` con un único `site_url` simplifica el contrato de descarga, y (c) `compare.py` no necesita ninguno de los modelos existentes.
+
+**Consecuencias:**
+- El flujo de comparación requiere dos ejecuciones previas de `download.py` (una por sitio), identificadas por la variable de entorno `GSC_SITE_URL` (ADR-11).
+- `Config`, `ExecutionRequest`, `SearchResult`, `exporter.py`, `search_console.py` y `download.py` no se modifican. `compare.py` es un módulo autónomo sin dependencias internas del proyecto.
+- El formato del CSV de salida es estable: la columna `status` usa los literales `shared` y `only_<label>`, derivados de las etiquetas configurables. Un cambio en el contrato público (firma, columnas, valores de `status`) requiere una nueva ADR.
+- Si en el futuro se quisiera comparar más de dos sitios o recibir un solo CSV de varios dominios, será un módulo nuevo (por ejemplo `compare_many.py`) que reutilice la lógica de agregación; `compare.py` no se extenderá para cubrir ese caso.
