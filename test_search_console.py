@@ -296,3 +296,155 @@ class TestDownloadSearchAnalyticsBody:
         body = call_kwargs.kwargs["body"]
 
         assert "dimensionFilterGroups" not in body
+
+
+class TestPagination:
+    def test_single_page_results(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=1000,
+        )
+
+        mock_service = MagicMock()
+        mock_response = {
+            "rows": [
+                {
+                    "keys": ["ladrillo cuarteron", "https://example.com/cuarteron/"],
+                    "clicks": 10,
+                    "impressions": 100,
+                    "ctr": 0.1,
+                    "position": 1.0,
+                }
+            ]
+        }
+        mock_service.searchanalytics().query.return_value.execute.return_value = (
+            mock_response
+        )
+
+        with patch("search_console.build", return_value=mock_service):
+            result = download_search_analytics(mock_credentials, base_config, request)
+
+        assert len(result) == 1
+        assert result[0].query == "ladrillo cuarteron"
+        assert result[0].clicks == 10
+        assert mock_service.searchanalytics().query.call_count == 1
+
+    def test_multiple_pages(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=2,
+        )
+
+        mock_service = MagicMock()
+        page1_rows = [
+            {
+                "keys": ["query a", "https://example.com/page1/"],
+                "clicks": 10,
+                "impressions": 100,
+                "ctr": 0.1,
+                "position": 1.0,
+            },
+            {
+                "keys": ["query b", "https://example.com/page2/"],
+                "clicks": 20,
+                "impressions": 200,
+                "ctr": 0.1,
+                "position": 2.0,
+            },
+        ]
+        page2_rows = [
+            {
+                "keys": ["query c", "https://example.com/page3/"],
+                "clicks": 30,
+                "impressions": 300,
+                "ctr": 0.1,
+                "position": 3.0,
+            },
+        ]
+        mock_service.searchanalytics().query.return_value.execute.side_effect = [
+            {"rows": page1_rows},
+            {"rows": page2_rows},
+        ]
+
+        with patch("search_console.build", return_value=mock_service):
+            result = download_search_analytics(mock_credentials, base_config, request)
+
+        assert len(result) == 3
+        assert result[0].query == "query a"
+        assert result[1].query == "query b"
+        assert result[2].query == "query c"
+        assert mock_service.searchanalytics().query.call_count == 2
+
+        call_bodies = [
+            call.kwargs["body"]
+            for call in mock_service.searchanalytics().query.call_args_list
+        ]
+        assert call_bodies[0]["startRow"] == 0
+        assert call_bodies[1]["startRow"] == 2
+
+    def test_empty_response(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=1000,
+        )
+
+        mock_service = MagicMock()
+        mock_service.searchanalytics().query.return_value.execute.return_value = {
+            "rows": []
+        }
+
+        with patch("search_console.build", return_value=mock_service):
+            result = download_search_analytics(mock_credentials, base_config, request)
+
+        assert len(result) == 0
+        assert mock_service.searchanalytics().query.call_count == 1
+
+    def test_last_page_less_than_row_limit(self, mock_credentials, base_config):
+        request = ExecutionRequest(
+            start_date="2026-01-01",
+            end_date="2026-01-07",
+            dimensions=["query", "page"],
+            query_type="web",
+            row_limit=100,
+        )
+
+        mock_service = MagicMock()
+        page1_rows = [
+            {
+                "keys": [f"query {i}", f"https://example.com/page{i}/"],
+                "clicks": i,
+                "impressions": i * 10,
+                "ctr": 0.1,
+                "position": 1.0,
+            }
+            for i in range(1, 101)
+        ]
+        page2_rows = [
+            {
+                "keys": [f"query {i}", f"https://example.com/page{i}/"],
+                "clicks": i,
+                "impressions": i * 10,
+                "ctr": 0.1,
+                "position": 1.0,
+            }
+            for i in range(101, 151)
+        ]
+        mock_service.searchanalytics().query.return_value.execute.side_effect = [
+            {"rows": page1_rows},
+            {"rows": page2_rows},
+        ]
+
+        with patch("search_console.build", return_value=mock_service):
+            result = download_search_analytics(mock_credentials, base_config, request)
+
+        assert len(result) == 150
+        assert mock_service.searchanalytics().query.call_count == 2

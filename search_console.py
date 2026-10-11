@@ -44,13 +44,26 @@ def download_search_analytics(
     if filters:
         body["dimensionFilterGroups"] = [{"filters": filters}]
 
-    response = service.searchanalytics().query(
-        siteUrl=config.site_url,
-        body=body,
-    ).execute()
+    all_rows = []
+    start_row = 0
 
-    rows = response.get("rows", [])
-    return [_row_to_search_result(row) for row in rows]
+    while True:
+        request_body = {**body, "startRow": start_row}
+
+        response = service.searchanalytics().query(
+            siteUrl=config.site_url,
+            body=request_body,
+        ).execute()
+
+        rows = response.get("rows", [])
+        all_rows.extend(rows)
+
+        if len(rows) < request.row_limit:
+            break
+
+        start_row += len(rows)
+
+    return [_row_to_search_result(row) for row in all_rows]
 
 
 def _row_to_search_result(row: dict) -> SearchResult:
